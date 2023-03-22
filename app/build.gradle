@@ -50,7 +50,18 @@ dependencies {
 
     // illustrating further changes
     implementation platform('com.google.firebase:firebase-bom:31.0.2')
-    implementation('com.google.firebase:firebase-crashlytics')
+    // exclude for every firebase component
+    /**
+     * commenting out, it won't compile w/o proper config
+    implementation('com.google.firebase:firebase-crashlytics') {
+        exclude module: 'protolite-well-known-types'
+        exclude module: 'protobuf-javalite'
+    }
+    implementation ('com.google.firebase:firebase-perf') {
+        exclude module: 'protolite-well-known-types'
+        exclude module: 'protobuf-javalite'
+    }
+    */
 
     // app core infra
     implementation 'io.reactivex.rxjava2:rxjava:2.2.21'
@@ -63,6 +74,21 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp'
     implementation 'com.squareup.okhttp3:logging-interceptor'
     implementation 'com.squareup.retrofit2:retrofit:2.9.0'
-    implementation 'com.squareup.retrofit2:adapter-rxjava2:2.9.0'
+//    implementation 'com.squareup.retrofit2:adapter-rxjava2:2.9.0'
+
+    // tracing
+    implementation 'io.opentelemetry:opentelemetry-api:1.23.1'
+    implementation 'io.opentelemetry:opentelemetry-sdk:1.23.1'
+    implementation 'io.opentelemetry:opentelemetry-exporter-otlp:1.23.1'
+    implementation 'io.opentelemetry:opentelemetry-semconv:1.23.1-alpha'
+
+    implementation 'io.opentelemetry:opentelemetry-opentracing-shim:1.23.0-alpha'
+    implementation 'io.opentelemetry:opentelemetry-extension-trace-propagators:1.23.0'
+    implementation 'io.grpc:grpc-protobuf:1.53.0'
+    implementation 'io.grpc:grpc-stub:1.53.0'
+    implementation 'io.grpc:grpc-netty-shaded:1.53.0'
+
+    implementation 'io.opentelemetry.instrumentation:opentelemetry-okhttp-3.0:1.23.0-alpha'
+    implementation 'io.opentelemetry.instrumentation:opentelemetry-rxjava-2.0:1.23.0-alpha'
 
 }

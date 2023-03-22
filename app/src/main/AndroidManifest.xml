@@ -17,6 +17,7 @@
         android:theme="@style/Theme.OTelTracingDemo"
         tools:targetApi="31"
         android:name=".App"
+        android:networkSecurityConfig="@xml/net_security_config"
         >
         <activity
             android:name=".MainActivity"
