@@ -6,10 +6,12 @@ import io.opentelemetry.api.OpenTelemetry
 import io.opentelemetry.api.trace.Tracer
 import io.opentelemetry.demo.android.tracing.error
 import io.opentelemetry.demo.android.tracing.span
+import io.opentelemetry.demo.android.tracing.spanStart
 import io.opentelemetry.demo.android.tracing.tong
 import io.opentelemetry.instrumentation.okhttp.v3_0.OkHttpTelemetry
 import io.reactivex.Completable
 import io.reactivex.Observable
+import io.reactivex.Single
 import io.reactivex.schedulers.Schedulers
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
@@ -85,8 +87,15 @@ class OtelExamples {
                         Thread.sleep(250)
                     }
                 }
+                .flatMapSingle {
+                    Single.fromCallable {
+                        tracer.span("rx.sync.subspan.2") {
+                            Thread.sleep(50)
+                        }
+                    }
+                }
                 .subscribe({
-                    tracer.span("rx.sync.subspan.2") {
+                    tracer.span("rx.sync.subspan.3") {
                         Thread.sleep(250)
                     }
                     throw RuntimeException("rx.sync exception")
@@ -100,22 +109,38 @@ class OtelExamples {
 
     @SuppressLint("CheckResult")
     fun rxAsync() {
-        tracer.tong("rx.scheduled") {
+        tracer.spanStart("rx.scheduled") { root ->
             val obs = Observable.create<Unit> { emitter ->
-                tracer.tong("rx.scheduled.subspan.1") {
-                    Thread.sleep(250)
-                }
                 emitter.onNext(Unit)
-                tracer.tong("rx.scheduled.subspan.2") {
-                    Thread.sleep(150)
-                }
                 emitter.onNext(Unit)
                 emitter.onError(RuntimeException("rx.scheduled exception"))
             }
             obs
+                .doOnNext {
+                    tracer.tong("rx.scheduled.subspan.1", root) {
+                        Thread.sleep(250)
+                    }
+                }
+                .doOnNext {
+                    tracer.tong("rx.scheduled.subspan.2", root) {
+                        Thread.sleep(150)
+                    }
+                }
+                .flatMapSingle {
+                    Single.fromCallable {
+                        tracer.span("rx.scheduled.subspan.3", root) {
+                            Thread.sleep(50)
+                        }
+                    }
+                }
+                .doOnTerminate { root.end() }
                 .subscribeOn(Schedulers.io())
                 .subscribe(
-                    {},
+                    {
+                        tracer.tong("rx.scheduled.subspan.subscribe", root) {
+                            Thread.sleep(150)
+                        }
+                    },
                     { throwable ->
                         tracer.error(throwable)
                         Log.w(TAG, "", throwable)
@@ -127,9 +152,10 @@ class OtelExamples {
 
     @SuppressLint("CheckResult")
     fun retrofit() {
-        tracer.span("retrofit") {
+        tracer.spanStart("retrofit") {
             api.query()
                 .andThen(api.error())
+                .doOnTerminate { it.end() }
                 .subscribe({/* ignore */ }, {/* swallow */ })
         }
     }

@@ -6,6 +6,7 @@ import io.opentelemetry.api.trace.Span
 import io.opentelemetry.api.trace.StatusCode
 import io.opentelemetry.api.trace.Tracer
 import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator
+import io.opentelemetry.context.Context
 import io.opentelemetry.context.propagation.ContextPropagators
 import io.opentelemetry.demo.android.BuildConfig
 import io.opentelemetry.exporter.otlp.trace.OtlpGrpcSpanExporter
@@ -74,16 +75,33 @@ class OTelModule : Module() {
     }
 }
 
-fun Tracer.span(name: String, block: (span: Span) -> Unit) {
-    spanBuilder(name).startSpan().also {
-        it.makeCurrent().use { _ ->
-            block.invoke(it)
+fun Tracer.span(name: String, parent: Span? = null, block: (span: Span) -> Unit) {
+    val builder = spanBuilder(name)
+    if (parent!=null)
+        builder.setParent(Context.current().with(parent))
+    builder
+        .startSpan().also {
+            it.makeCurrent().use { _ ->
+                block.invoke(it)
+            }
+            it.end()
         }
-        it.end()
-    }
 }
 
-fun Tracer.tong(name: String, block: (span: Span) -> Unit) = span(name, block) // egg
+fun Tracer.spanStart(name: String, parent: Span? = null, block: (span: Span) -> Unit) {
+    val builder = spanBuilder(name)
+    if (parent!=null)
+        builder.setParent(Context.current().with(parent))
+    builder
+        .startSpan().also {
+            it.makeCurrent().use { _ ->
+                block.invoke(it)
+            }
+        }
+}
+
+fun Tracer.tong(name: String, parent: Span? = null, block: (span: Span) -> Unit) =
+    span(name, parent, block) // egg
 
 fun Tracer.error(throwable: Throwable) {
     span("error") {
